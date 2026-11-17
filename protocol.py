@@ -44,8 +44,8 @@ MSG_ERROR = "error"           # что-то пошло не так
 # welcome:    {"action": "welcome", "your_turn_first": true/false}
 # fleet_ready: {"action": "fleet_ready"}
 # shot:       {"action": "shot", "x": 3, "y": 5}
-# result:     {"action": "result", "outcome": "miss" | "hit" | "sunk" "cell",
-#              "game_over": false}
+# result:     {"action": "result", "outcome": "miss" | "hit" | "sunk",
+#              "cells": [[3,5],[3,6], "game_over": false}
 # fleet:      {"action": "fleet", "ships": [[0,0,0], ...]}  (клетки кораблей)
 # game_over:  {"action": "game_over", "winner": "Имя победителя"}
 # error:      {"action": "error", "message": "текст ошибки"}

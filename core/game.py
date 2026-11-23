@@ -35,27 +35,31 @@ class Player:
 
 
 class HumanPlayer(Player):
-    """Игрок-человек: вводит координаты с клавиатуры."""
+    """Игрок-человек. Откуда берётся ввод — решает интерфейс:
+    он передаёт функции read_shot (ввод хода) и draw (перерисовку)."""
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, read_shot=None, draw=None):
         self.name = name
-        self._last_result = None  # сюда игра складывает результат выстрела
+        # read_shot — функция без аргументов, возвращающая (x, y).
+        # draw — функция без аргументов, обновляющая экран.
+        self.read_shot = read_shot or self._read_numbers
+        self.draw = draw or (lambda: None)
+        self._last_result = None
+
+    def _read_numbers(self) -> tuple[int, int]:
+        """Резервный ввод двумя числами — работает без интерфейса."""
+        while True:
+            raw = input(f"{self.name}, ваш выстрел (два числа x и y): ")
+            parts = raw.split()
+            if len(parts) == 2 and all(p.isdigit() for p in parts):
+                x, y = int(parts[0]), int(parts[1])
+                if 0 <= x <= 9 and 0 <= y <= 9:
+                    return x, y
+            print("Введите два числа от 0 до 9, например: 3 5")
 
     def get_shot(self) -> tuple[int, int]:
-        while True:
-            raw = input(f"{self.name}, ваш выстрел (два числа, x и y): ")
-            parts = raw.split()
-            if len(parts) != 2:
-                print("Нужно два числа через пробел, например: 3 5")
-                continue
-            try:
-                x, y = int(parts[0]), int(parts[1])
-            except ValueError:
-                print("Введите именно числа.")
-                continue
-            if 0 <= x <= 9 and 0 <= y <= 9:
-                return x, y
-            print("Координаты должны быть от 0 до 9.")
+        self.draw()  # перед каждым ходом показываем актуальную картину
+        return self.read_shot()
 
     def on_result(self, x: int, y: int, result: dict) -> None:
         outcome = result["outcome"]
@@ -63,18 +67,17 @@ class HumanPlayer(Player):
             print("Мимо!")
         elif outcome == "hit":
             print("Попадание! Ходите снова.")
-        else:  # sunk
-            print(f"Убил! Клетки корабля: {result['cells']}")
+        else:
+            print("Убил! Корабль противника потоплен.")
 
     def on_enemy_shot(self, x: int, y: int, result: dict) -> None:
-        # Человеку важен только результат выстрела по ЕГО полю.
         outcome = result["outcome"]
         if outcome == "miss":
-            print(f"Противник выстрелил в ({x}, {y}) — мимо.")
+            print(f"Противник стрелял в клетку ({x}, {y}) — мимо.")
         elif outcome == "hit":
-            print(f"Противник попал в ({x}, {y})!")
+            print(f"Противник попал в клетку ({x}, {y})!")
         else:
-            print(f"Противник потопил корабль! Клетки: {result['cells']}")
+            print(f"Противник потопил ваш корабль! Клетки: {result['cells']}")
 
 
 class BotPlayer(Player):
@@ -202,6 +205,7 @@ class Game:
         self.finished = False
         self.winner: Player | None = None
         self.shot_count = 0     # статистика — пригодится для отчёта
+        self.shots = [0, 0]
 
     def _opponent_index(self) -> int:
         return 1 - self.current
@@ -237,3 +241,6 @@ class Game:
         #    после попадания — ходит снова стрелявший.
         if result["outcome"] == "miss" or not SHOOT_AGAIN_ON_HIT:
             self.current = self._opponent_index()
+
+        # 6. Добавляем ход в счётчик
+        self.shots[self.current] += 1
